@@ -363,7 +363,7 @@ def create_app(db_path=None):
         else:
             nxt = STATUS_FLOW[STATUS_FLOW.index(o["status"]) + 1]
             db.execute("UPDATE orders SET status=? WHERE id=?", (nxt, order_id))
-                      db.execute("INSERT INTO order_events(order_id,status,created_at) VALUES(?,?,?)", (order_id, nxt, now()))
+            db.execute("INSERT INTO order_events(order_id,status,created_at) VALUES(?,?,?)", (order_id, nxt, now()))
             flash(f"Order #{order_id} is now '{nxt}' (simulated tracking).", "success")
         return redirect(url_for("admin_orders"))
 
