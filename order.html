@@ -1,5 +1,13 @@
+
 {% extends "base.html" %}{% block body %}<h1>Order #{{ o.id }}</h1>
 <p>Status: <b>{{ o.status }}</b> · Payment: <b>{{ o.payment_status }}</b>{% if o.payment_method %} ({{ o.payment_method|upper }}){% endif %} · Placed {{ o.created_at }}</p>
+
+{% if o.status in STATUS_FLOW and o.status != 'Delivered' %}
+<p>
+Estimated delivery (simulated): about 45 minutes after your order is placed.
+</p>
+{% endif %}
+
 {% if o.status in STATUS_FLOW %}<div class="sim"><b>SIMULATED delivery tracking</b> - the status below is moved by the store-staff demo page, not by a real rider or GPS.</div>
 <div class="steps">{% set idx = STATUS_FLOW.index(o.status) %}{% for s in STATUS_FLOW %}<div class="step {{ 'done' if loop.index0 < idx else ('now' if loop.index0 == idx else '') }}">{{ s }}</div>{% endfor %}</div>
 {% elif o.status in ('Pending Payment','Payment Failed') %}<div class="flash error">Payment not completed. <a href="{{ url_for('pay', order_id=o.id) }}">Pay now</a></div>
