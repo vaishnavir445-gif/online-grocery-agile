@@ -1,63 +1,86 @@
-# FreshKart - Online Grocery Application (Agile Final Jury prototype)
+# FreshKart - Online Grocery Application
 
-Stack: **Python Flask + SQLite**, HTML templates (Jinja) and one CSS file. No build step.
+FreshKart is a working online grocery web app: customers search products, build a cart, place an order, pay, and follow the delivery status. The project was built using Scrum, with user stories, sprints, a task board, a Definition of Done, test cases and a GitHub history.
 
-> **SIMULATED (say this in the jury):** the payment gateway and the delivery tracking are simulations.
-> No real money, GPS or notification service is used. The pages are labelled "SIMULATED" on screen.
+> **Simulated parts:** the payment gateway and the delivery tracking (status changes and rider movement) are simulations. No real money, GPS or notification service is used, and the pages say so on screen.
+
+## Features
+
+- Product catalogue with search and category filter, with in-stock, low-stock and out-of-stock labels
+- Shopping cart with quantity rules and automatic price calculation
+- Checkout with validation (name, mobile number, address)
+- Simulated payment by UPI or card, with failure handling and retry
+- Order summary and order history
+- Simulated delivery tracking: status bar, route view with a moving rider, estimated time and a timeline with timestamps
+- Store staff page to move orders through Placed, Packed, Out for Delivery and Delivered
+
+## Tech stack
+
+- Python 3 and Flask
+- SQLite database
+- HTML templates (Jinja) and CSS
 
 ## Run it
-```bash
+
+```
 pip install -r requirements.txt
-python app.py            # open http://127.0.0.1:5000
-python run_tests.py      # runs 16 test cases, writes TEST_REPORT.md
+python app.py
 ```
-The database file `grocery.db` is created and seeded with 30 products on the first run. Delete it to reset.
 
-## Live demo script (5-7 minutes)
-1. **Shop** (`/`): search "milk", filter by category "Dairy", point out "Out of stock" (Almond Milk) and "Only 3 left" (Strawberry).
-2. **Cart**: add Milk x2 and Bread x1 -> cart shows subtotal 169 + delivery 30 = 199. Add Strawberry x5 -> error "Only 3 of Strawberry in stock".
-3. **Checkout**: submit with a bad phone number -> validation errors. Then fill valid details (name, 10-digit mobile starting 6-9, address 10+ chars).
-4. **Payment (SIMULATED)**: card `4000 0000 0000 0002` -> declined, cart kept. Retry with UPI `asha@okbank` -> success, stock reduced.
-5. **Tracking (SIMULATED)**: open "Store Staff (demo)", move the order Placed -> Packed -> Out for Delivery -> Delivered, and refresh the customer's order page.
-6. **Testing**: show `python run_tests.py` output and `TEST_REPORT.md` (expected vs actual).
+Then open http://127.0.0.1:5000
 
-Simulated payment test values: card ending `0002` = declined, ending `9995` = insufficient funds, any other 16-digit card with a future expiry and 3-digit CVV = success. UPI id starting with `fail` = declined; any other valid `name@bank` = success.
+The database file `grocery.db` is created and filled with 30 products on the first run. To reset all data, stop the app, delete `grocery.db` and start it again.
 
-## Business rules (good viva answers)
-- Max **10** units per item per order; quantity must be a whole number >= 1; cannot exceed stock.
-- Delivery fee **Rs 30**, free when subtotal is **Rs 300 or more**.
-- Stock is reduced **only when payment succeeds**, using one atomic SQL update (`UPDATE ... WHERE stock >= qty`) inside a transaction.
-  If someone else bought the last unit first, the order is cancelled and not charged (this is the fix for the "last unit sold twice" defect, DEF-07).
-- Delivery status can only move forward: Placed -> Packed -> Out for Delivery -> Delivered. Unpaid orders cannot ship.
+## Demo walkthrough
 
-## Files
-| File | Purpose |
+1. **Shop:** search "milk" or filter by category.
+2. **Cart:** add items and see subtotal, delivery fee and total. Try adding more than the available stock.
+3. **Checkout:** enter delivery details (10-digit mobile number, full address).
+4. **Payment (simulated):** a card ending `0002` is declined, `9995` is insufficient funds, `0069` is blocked. Any other 16-digit card with a future expiry and a 3-digit CVV succeeds. For UPI, an ID starting with `fail` is declined and any other valid `name@bank` succeeds.
+5. **Tracking (simulated):** open "Store Staff (demo)", move the order forward, and watch the order page update.
+
+## Business rules
+
+- Maximum 10 units of one item per order; quantity must be a whole number of at least 1 and cannot exceed stock.
+- Delivery fee is Rs 30, free for orders of Rs 300 or more.
+- Stock is reduced only when payment succeeds, using a single atomic SQL update inside a transaction. If the last unit is bought by someone else first, the order is cancelled and the customer is not charged.
+- Delivery status moves only forward: Placed, Packed, Out for Delivery, Delivered. Unpaid orders cannot ship.
+
+## Tests
+
+```
+python run_tests.py
+```
+
+Runs the automated test cases (positive, negative and boundary) with expected vs actual results and writes `TEST_REPORT.md`. They cover search, cart limits, price calculation, checkout validation, payment success, failure and retry, stock running out during payment, and the delivery status flow.
+
+## Project structure
+
+| Path | Purpose |
 |---|---|
-| `app.py` | All routes, validation rules, simulated gateway, database setup |
-| `templates/` | Pages: catalogue, cart, checkout, payment, order/tracking, my orders, staff |
+| `app.py` | Routes, validation rules, simulated payment gateway, database setup |
+| `templates/` | HTML pages |
 | `static/style.css` | Styling |
-| `run_tests.py` | 16 test cases (positive / negative / boundary) with expected vs actual |
+| `run_tests.py` | Automated test cases |
+| `TEST_REPORT.md` | Latest test results |
 
-## Database (SQLite)
-`products(id, name, category, unit, price, stock, emoji)` - `orders(id, customer_name, phone, address, subtotal, delivery_fee, total, status, payment_method, payment_status, created_at)` - `order_items(order_id, product_id, name, price, qty)` - `payment_attempts(order_id, method, outcome, reason, created_at)`
+## Database
 
-## Coverage of the jury checklist
-- Core features: catalogue + search/category, cart with price calculation, order + summary, simulated payment, order status/tracking.
-- Required tests: stock shortage (TC-04, TC-13), excess quantity (TC-04, TC-07), payment failure (TC-11, TC-12).
-- Validation: quantity, name, phone, address, UPI id, card number, expiry, CVV.
-- Persistence: SQLite.
-- Not built (be honest if asked): user login/accounts, real payment/GPS, email/SMS notifications.
+- `products` - catalogue and stock
+- `orders` - customer details, totals, status and payment status
+- `order_items` - items in each order
+- `payment_attempts` - every payment attempt and its outcome
+- `order_events` - time of each delivery status change
 
-## GitHub (each member should commit their own work)
-```bash
-git init && git add . && git commit -m "feat: initial grocery app skeleton"
-git branch -M main && git remote add origin <your-repo-url> && git push -u origin main
-```
-Use meaningful messages, for example `feat: cart quantity validation`, `fix: re-check stock at payment (DEF-07)`, `test: add boundary cases for max quantity`.
+## Team
 
-## Who explains what (suggested split - edit it to match what each member really worked on)
-- Catalogue, search and category filter (`index`)
-- Cart rules and price calculation (`check_qty`, `price_summary`, cart routes)
-- Checkout validation and order creation (`validate_checkout`, `checkout`)
-- Simulated payment and stock deduction (`simulated_gateway`, `pay`)
-- Order tracking, staff page and tests (`order`, `admin_*`, `run_tests.py`)
+| Name | Roll No. | Area |
+|---|---|---|
+| Vaishnavi Ramesh | 57 | Catalogue and search |
+| Shraddha Gotawale | 45 | Cart |
+| Kritika Karnani | 27 | Checkout and payment |
+| Rigved Shelar | 38 | Tracking and tests |
+
+## Limitations
+
+User login and accounts, real payments, real GPS, and email or SMS notifications are not implemented.admin_*`, `run_tests.py`)
