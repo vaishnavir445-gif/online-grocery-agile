@@ -309,8 +309,7 @@ def create_app(db_path=None):
                 flash(f"Sorry, {short} just went out of stock. You were not charged. Please update your cart.", "error")
                 return redirect(url_for("cart"))
             db.execute("UPDATE orders SET status='Placed', payment_status='Paid', payment_method=? WHERE id=?", (method, order_id))
-                      db.execute("INSERT INTO order_events(order_id,status,created_at) VALUES(?,?,?)", (order_id, "Placed", now()))
-    
+            db.execute("INSERT INTO order_events(order_id,status,created_at) VALUES(?,?,?)", (order_id, "Placed", now()))
             db.execute("INSERT INTO payment_attempts(order_id,method,outcome,reason,created_at) VALUES(?,?,?,?,?)",
                        (order_id, method, "approved", "", now()))
             db.execute("COMMIT")
