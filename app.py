@@ -326,7 +326,7 @@ def create_app(db_path=None):
         if not o:
             abort(404)
         items = db.execute("SELECT * FROM order_items WHERE order_id=?", (order_id,)).fetchall()
-                times = {e["status"]: e["created_at"] for e in db.execute(
+        times = {e["status"]: e["created_at"] for e in db.execute(
             "SELECT status, created_at FROM order_events WHERE order_id=? ORDER BY id", (order_id,))}
         # SIMULATED rider position (% of the route): fixed per status, and while
         # "Out for Delivery" it moves from 55% to 95% over 60 seconds.
