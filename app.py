@@ -121,12 +121,10 @@ def simulated_gateway(method, form):
             return "invalid", "CVV must be 3 digits."
         if number.endswith("0002"):
             return "declined", "Card declined by bank (simulated)."
-           if number.endswith("0069"):
-return "declined", "Card blocked by bank (simulated)."
         if number.endswith("9995"):
             return "declined", "Insufficient funds (simulated)."
-          if number.endswith("0069"):
-return "declined", "Card blocked by bank (simulated)."
+        if number.endswith("0069"):
+            return "declined", "Card blocked by bank (simulated)."
         return "approved", ""
     return "invalid", "Choose a payment method."
 
