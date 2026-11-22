@@ -208,7 +208,7 @@ def create_app(db_path=None):
         else:
             cart[str(p["id"])] = wanted
             session["cart"] = cart
-            flash(f"Added {q} x {p['name']} to your cart.", "success")
+            flash(f"Added {q} x {p['name']} to your cart. Cart has {sum(cart.values())} items.", "success")
         return redirect(request.referrer or url_for("index"))
 
     @app.post("/cart/update")
