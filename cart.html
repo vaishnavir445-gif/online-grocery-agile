@@ -8,4 +8,5 @@
 <div class="card" style="margin-top:14px;max-width:340px;margin-left:auto"><div>Subtotal: <b>₹{{ s.subtotal }}</b></div>
 <div>Delivery: <b>{{ '₹%d'|format(s.delivery_fee) if s.delivery_fee else 'FREE' }}</b></div>
 <div class="muted">Free delivery on orders of ₹300 or more</div><h2>Total: ₹{{ s.total }}</h2>
+{% if s.delivery_fee %}<div class="muted">Add ₹{{ 300 - s.subtotal }} more for free delivery</div>{% endif %} Commit 2  
 <a class="btn" href="{{ url_for('checkout') }}">Proceed to checkout</a></div>{% endif %}{% endblock %}
