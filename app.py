@@ -31,6 +31,9 @@ CREATE TABLE IF NOT EXISTS order_items(
 CREATE TABLE IF NOT EXISTS payment_attempts(
   id INTEGER PRIMARY KEY, order_id INTEGER REFERENCES orders(id),
   method TEXT, outcome TEXT, reason TEXT, created_at TEXT);
+CREATE TABLE IF NOT EXISTS order_events(
+  id INTEGER PRIMARY KEY, order_id INTEGER REFERENCES orders(id),
+  status TEXT, created_at TEXT);
 """
 
 # name, category, unit, price (Rs), stock, emoji
@@ -306,6 +309,8 @@ def create_app(db_path=None):
                 flash(f"Sorry, {short} just went out of stock. You were not charged. Please update your cart.", "error")
                 return redirect(url_for("cart"))
             db.execute("UPDATE orders SET status='Placed', payment_status='Paid', payment_method=? WHERE id=?", (method, order_id))
+                      db.execute("INSERT INTO order_events(order_id,status,created_at) VALUES(?,?,?)", (order_id, "Placed", now()))
+    
             db.execute("INSERT INTO payment_attempts(order_id,method,outcome,reason,created_at) VALUES(?,?,?,?,?)",
                        (order_id, method, "approved", "", now()))
             db.execute("COMMIT")
@@ -322,7 +327,15 @@ def create_app(db_path=None):
         if not o:
             abort(404)
         items = db.execute("SELECT * FROM order_items WHERE order_id=?", (order_id,)).fetchall()
-        return render_template("order.html", o=o, items=items)
+                times = {e["status"]: e["created_at"] for e in db.execute(
+            "SELECT status, created_at FROM order_events WHERE order_id=? ORDER BY id", (order_id,))}
+        # SIMULATED rider position (% of the route): fixed per status, and while
+        # "Out for Delivery" it moves from 55% to 95% over 60 seconds.
+        rider = {"Placed": 5, "Packed": 25, "Out for Delivery": 55, "Delivered": 100}.get(o["status"], 0)
+        if o["status"] == "Out for Delivery" and "Out for Delivery" in times:
+            secs = (datetime.now() - datetime.strptime(times["Out for Delivery"], "%Y-%m-%d %H:%M:%S")).total_seconds()
+            rider = round(55 + min(secs / 60, 1) * 40, 1)
+        return render_template("order.html", o=o, items=items, times=times, rider=rider)
 
     @app.get("/orders")
     def orders():
@@ -351,6 +364,7 @@ def create_app(db_path=None):
         else:
             nxt = STATUS_FLOW[STATUS_FLOW.index(o["status"]) + 1]
             db.execute("UPDATE orders SET status=? WHERE id=?", (nxt, order_id))
+                      db.execute("INSERT INTO order_events(order_id,status,created_at) VALUES(?,?,?)", (order_id, nxt, now()))
             flash(f"Order #{order_id} is now '{nxt}' (simulated tracking).", "success")
         return redirect(url_for("admin_orders"))
 
