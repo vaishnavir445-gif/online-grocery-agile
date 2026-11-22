@@ -1,0 +1,38 @@
+{% extends "base.html" %}{% block body %}
+<style>
+.route{position:relative;height:74px;margin:18px 12px 8px}
+.road{position:absolute;left:0;right:0;top:36px;height:8px;border-radius:8px;background:#dfe9df}
+.road i{display:block;height:100%;border-radius:8px;background:var(--g);transition:width 1s}
+.stop{position:absolute;top:6px;font-size:30px}.rider{position:absolute;top:2px;font-size:32px;transform:translateX(-50%);transition:left 1s}
+.tl{list-style:none;padding:0;margin:8px 0 0}
+.tl li{display:flex;gap:12px;padding:8px 0 8px 18px;border-left:3px solid #dfe9df;margin-left:10px;position:relative}
+.tl li:before{content:"";position:absolute;left:-9px;top:12px;width:15px;height:15px;border-radius:50%;background:#dfe9df}
+.tl li.done{border-color:var(--g)}.tl li.done:before{background:var(--g)}.tl li.now:before{background:var(--amb)}
+.tl .t{margin-left:auto;color:#5d7563;font-size:13px}.tl li.todo{color:#8a9a8d}
+</style>
+<h1>Order #{{ o.id }}</h1>
+<p>Status: <b>{{ o.status }}</b> · Payment: <b>{{ o.payment_status }}</b>{% if o.payment_method %} ({{ o.payment_method|upper }}){% endif %} · Placed {{ o.created_at }}</p>
+{% if o.status in STATUS_FLOW %}
+{% set idx = STATUS_FLOW.index(o.status) %}
+{% set km = ((100 - rider) * 0.03)|round(1) %}
+{% set mins = ((100 - rider) * 0.3)|round|int %}
+{% set prep = [30 + items|length * 5, 60]|min %}
+<div class="sim"><b>SIMULATED delivery tracking</b> - the status is moved by the store-staff demo page and the rider movement is a demo animation, not real GPS.</div>
+<div class="steps">{% for s in STATUS_FLOW %}<div class="step {{ 'done' if loop.index0 < idx else ('now' if loop.index0 == idx else '') }}">{{ s }}</div>{% endfor %}</div>
+<div class="card"><h2 style="margin-top:0">{% if o.status == 'Delivered' %}Delivered ✅{% elif o.status == 'Out for Delivery' %}Your rider is on the way{% else %}We are getting your order ready{% endif %}</h2>
+<div class="route"><span class="stop" style="left:0">🏪</span><span class="stop" style="right:0">🏠</span>
+<div class="road"><i style="width:{{ rider }}%"></i></div><span class="rider" style="left:{{ rider }}%">🛵</span></div>
+<div class="muted" style="display:flex;justify-content:space-between"><span>FreshKart Store</span><span>Your home</span></div>
+{% if o.status == 'Out for Delivery' %}<p style="margin-bottom:0">🛵 Rider <b>Arjun S.</b> (simulated) is <b>{{ km }} km</b> away · arriving in about <b>{{ mins }} min</b></p>
+{% elif o.status == 'Delivered' %}<p style="margin-bottom:0">Delivered at <b>{{ times.get('Delivered', '') }}</b>. Enjoy your groceries!</p>
+{% else %}<p style="margin-bottom:0">Estimated delivery (simulated): about <b>{{ prep }} minutes</b> after your order is placed.</p>{% endif %}</div>
+{% set desc = {'Placed': 'Payment received, order confirmed', 'Packed': 'Items packed at the store', 'Out for Delivery': 'Rider has picked up your order', 'Delivered': 'Order delivered to you'} %}
+<div class="card" style="margin-top:14px"><h2 style="margin-top:0">Order timeline</h2><ul class="tl">
+{% for s in STATUS_FLOW %}<li class="{{ 'done' if (loop.index0 < idx or o.status == 'Delivered') else ('now' if loop.index0 == idx else 'todo') }}"><span><b>{{ s }}</b><br><span class="muted">{{ desc[s] }}</span></span><span class="t">{{ times.get(s, '') }}</span></li>{% endfor %}</ul></div>
+{% if o.status != 'Delivered' %}<script>setTimeout(function(){location.reload()}, 5000)</script><p class="muted">This page refreshes by itself every 5 seconds.</p>{% endif %}
+{% elif o.status in ('Pending Payment','Payment Failed') %}<div class="flash error">Payment not completed. <a href="{{ url_for('pay', order_id=o.id) }}">Pay now</a></div>
+{% else %}<div class="flash error">This order was cancelled. You were not charged.</div>{% endif %}
+<div class="cols" style="margin-top:14px"><table><tr><th>Item</th><th>Price</th><th>Qty</th><th class="right">Total</th></tr>
+{% for i in items %}<tr><td>{{ i.name }}</td><td>₹{{ i.price }}</td><td>{{ i.qty }}</td><td class="right">₹{{ i.price*i.qty }}</td></tr>{% endfor %}</table>
+<div class="card"><div>Subtotal <span style="float:right">₹{{ o.subtotal }}</span></div><div>Delivery <span style="float:right">{{ '₹%d'|format(o.delivery_fee) if o.delivery_fee else 'FREE' }}</span></div>
+<h2>Total <span style="float:right">₹{{ o.total }}</span></h2><div class="muted"><b>Deliver to:</b> {{ o.customer_name }}, {{ o.phone }}<br>{{ o.address }}</div></div></div>{% endblock %}
